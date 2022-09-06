@@ -98,34 +98,25 @@ class SudokuClassifier:
         
         
         image = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-        #image = cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,5,8)
-        #image = cv2.bilateralFilter(image,9,70,80)
         
+        image = cv2.resize(image,(32,32))
         
-        image  = self.preProcessImage(image)
+        image = cv2.equalizeHist(image)
         
-        return image
-    def preProcessImage(self,img):
-        img = cv2.resize(img,(32,32))
-        #img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-        #img[img>50]=255
+        image = image/255
         
-        img = cv2.equalizeHist(img)
-        
-        img = img/255
-        
-        img = np.asarray(img)
+        image = np.asarray(image)
 
-        return img
+        return image
+        
+        
+    
+        
 
     def tobeSudoku(self,image):
         
         image = self.preprocessNumber(image[5:-5,5:-5])
-        #print(image)
         
-        #plt.imshow(image, cmap='gray')
-        #plt.show()
-
        
         if len(np.unique(image))==1:
             self.numberList.append(0)
@@ -153,11 +144,11 @@ if __name__ == '__main__':
     
     preprocessedImage = sc.preprocessSudoku(problem)
     points = sc.findBox(problem,preprocessedImage)
-    #(x,y,w,h)=points
+
     sc.findNumberBoxes(problem,points)
     print(np.reshape(sc.numberList,(9,3,3)))
 
     cv2.imshow('preprocessedImage',preprocessedImage)
-    #cv2.imshow('sudokuArea',problem.copy()[y:y+h,x:x+w])
+
     cv2.imshow('problem',problem.copy())
     cv2.waitKey(0)
