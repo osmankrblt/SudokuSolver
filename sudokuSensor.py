@@ -104,6 +104,7 @@ class SudokuClassifier:
         
         image = np.asarray(image)
 
+
         return image
 
         
@@ -112,7 +113,6 @@ class SudokuClassifier:
         image = self.preprocessNumber(image[5:-5,5:-5])
         
 
-       
         if len(np.unique(image))==1:
             self.numberList.append(0)
         else:
@@ -144,6 +144,5 @@ if __name__ == '__main__':
     print(np.reshape(sc.numberList,(9,3,3)))
 
     cv2.imshow('preprocessedImage',preprocessedImage)
-    
     cv2.imshow('problem',problem.copy())
     cv2.waitKey(0)
