@@ -1,12 +1,21 @@
 
+from multiprocessing.connection import wait
 import cv2
 import numpy as np
-import pytesseract
+from tensorflow.keras.models import load_model
 from matplotlib import pyplot as plt
 
+import tensorflow as tf
+
+
+sess = tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(log_device_placement=True))
+
+
+model = load_model('model.h5') 
 class SudokuClassifier:
     def __init__(self):
-        pytesseract.pytesseract.tesseract_cmd = r'C:\\Program Files\\Tesseract-OCR\\tesseract'
+       
+        
         self.numberList=[]
    
     def preprocessSudoku(self,sudoku):
@@ -36,35 +45,32 @@ class SudokuClassifier:
         
     
     def findNumberBoxes(self,image,points):
-        x,y,w,h = points
-        """ x+=2
+        (x,y,w,h) = points
+
+      
         
+        
+        """ x+=2
+
         temp_x=x
         temp_y=y
-
         box_w = int((x+w+25)/10)
         box_h = int((y+h-22)/10)
         box_w = int((w-x)/8.2)
         box_h = int((h-y)/7.5)  """
-       
-        x+=2
-        
-        temp_x=x
-        temp_y=y
 
-        box_w = int((x+w-10)/9)
-        box_h = int((y+h-35)/9)
-        
-       
+        x += 2
+
+        temp_x = x
+        temp_y = y
+
+        box_w = int((x + w - 10) / 9)
+        box_h = int((y + h - 35) / 9)
 
         for k in range(1,10):
             for j in range(1,10):
-                
-                print("Box {} : index {} " .format(k,j))
-
                 cv2.rectangle(image, (x, y), (x + box_w, y + box_h), (np.random.randint(0,255), np.random.randint(0,255), np.random.randint(0,255)), 3)
-                #plt.imshow(image)
-                #plt.show()
+                
                 self.tobeSudoku(image[y:y+box_h,x:x+box_w])
 
 
@@ -83,36 +89,58 @@ class SudokuClassifier:
                 
                 y = temp_y + 3*box_h
                 temp_y=y
-                
+
                 
             
                 
 
-    def preprocessNumber(self,number):
+    def preprocessNumber(self,image):
         
         
-        gray = cv2.cvtColor(number,cv2.COLOR_BGR2GRAY)
-       
-        bilFilter = cv2.bilateralFilter(gray,9,70,80)
+        image = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+        #image = cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,5,8)
+        #image = cv2.bilateralFilter(image,9,70,80)
         
         
-        opening = cv2.morphologyEx(bilFilter, cv2.MORPH_OPEN, (5,5))
-        closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, (2,2))
+        image  = self.preProcessImage(image)
         
-        return closing
+        return image
+    def preProcessImage(self,img):
+        img = cv2.resize(img,(32,32))
+        #img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        #img[img>50]=255
+        
+        img = cv2.equalizeHist(img)
+        
+        img = img/255
+        
+        img = np.asarray(img)
+
+        return img
 
     def tobeSudoku(self,image):
         
-        image = self.preprocessNumber(image)
+        image = self.preprocessNumber(image[5:-5,5:-5])
+        #print(image)
         
-        
-        
-        #plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        #plt.imshow(image, cmap='gray')
         #plt.show()
+
+       
+        if len(np.unique(image))==1:
+            self.numberList.append(0)
+        else:
+            image = image.reshape(1, 32, 32, 1)
+            predictions = model.predict(image)
+            classIndex = np.argmax(predictions,axis=1)
+            probabilityValue = np.amax(predictions)
         
-        number = pytesseract.image_to_string(image,config='--psm 10 --oem 3 -c tessedit_char_whitelist=0123456789') 
-        self.numberList.append(int(number) if number != "" else 0 )
-        print(">>>> "+number)
+            if probabilityValue > 0.78:
+            
+                self.numberList.append(classIndex[0])
+            else:
+                self.numberList.append(0)
+        
         
 
         
@@ -125,9 +153,11 @@ if __name__ == '__main__':
     
     preprocessedImage = sc.preprocessSudoku(problem)
     points = sc.findBox(problem,preprocessedImage)
+    #(x,y,w,h)=points
     sc.findNumberBoxes(problem,points)
     print(np.reshape(sc.numberList,(9,3,3)))
 
-    #cv2.imshow('outputRectangle',sudokuArea)
-    cv2.imshow('problem',problem)
+    cv2.imshow('preprocessedImage',preprocessedImage)
+    #cv2.imshow('sudokuArea',problem.copy()[y:y+h,x:x+w])
+    cv2.imshow('problem',problem.copy())
     cv2.waitKey(0)
