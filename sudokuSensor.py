@@ -1,10 +1,7 @@
-
-from multiprocessing.connection import wait
 import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
 from matplotlib import pyplot as plt
-
 import tensorflow as tf
 
 
@@ -47,17 +44,17 @@ class SudokuClassifier:
     def findNumberBoxes(self,image,points):
         (x,y,w,h) = points
 
-      
-        
-        
-        """ x+=2
+        """ 
+        x+=2
 
         temp_x=x
         temp_y=y
         box_w = int((x+w+25)/10)
         box_h = int((y+h-22)/10)
         box_w = int((w-x)/8.2)
-        box_h = int((h-y)/7.5)  """
+        box_h = int((h-y)/7.5)  
+        
+        """
 
         x += 2
 
@@ -71,7 +68,7 @@ class SudokuClassifier:
             for j in range(1,10):
                 cv2.rectangle(image, (x, y), (x + box_w, y + box_h), (np.random.randint(0,255), np.random.randint(0,255), np.random.randint(0,255)), 3)
                 
-                self.tobeSudoku(image[y:y+box_h,x:x+box_w])
+                self.findNumbers(image[y:y+box_h,x:x+box_w])
 
 
 
@@ -98,33 +95,22 @@ class SudokuClassifier:
         
         
         image = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-        #image = cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,5,8)
-        #image = cv2.bilateralFilter(image,9,70,80)
         
+        image = cv2.resize(image,(32,32))
         
-        image  = self.preProcessImage(image)
+        image = cv2.equalizeHist(image)
         
+        image = image/255
+        
+        image = np.asarray(image)
+
         return image
-    def preProcessImage(self,img):
-        img = cv2.resize(img,(32,32))
-        #img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-        #img[img>50]=255
-        
-        img = cv2.equalizeHist(img)
-        
-        img = img/255
-        
-        img = np.asarray(img)
 
-        return img
-
-    def tobeSudoku(self,image):
+        
+    def findNumbers(self,image):
         
         image = self.preprocessNumber(image[5:-5,5:-5])
-        #print(image)
         
-        #plt.imshow(image, cmap='gray')
-        #plt.show()
 
        
         if len(np.unique(image))==1:
@@ -153,11 +139,11 @@ if __name__ == '__main__':
     
     preprocessedImage = sc.preprocessSudoku(problem)
     points = sc.findBox(problem,preprocessedImage)
-    #(x,y,w,h)=points
+
     sc.findNumberBoxes(problem,points)
     print(np.reshape(sc.numberList,(9,3,3)))
 
     cv2.imshow('preprocessedImage',preprocessedImage)
-    #cv2.imshow('sudokuArea',problem.copy()[y:y+h,x:x+w])
+    
     cv2.imshow('problem',problem.copy())
     cv2.waitKey(0)
